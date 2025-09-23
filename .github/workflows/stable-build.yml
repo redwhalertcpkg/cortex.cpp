@@ -53,36 +53,36 @@ jobs:
       upload_url: ${{ needs.create-draft-release.outputs.upload_url }}
       llamacpp-version: ${{ needs.get-llamacpp-latest-version.outputs.llamacpp_latest_version }}
 
-  build-windows-x64:
-    uses: ./.github/workflows/template-build-windows-x64.yml
-    secrets: inherit
-    needs: [get-update-version, create-draft-release, get-llamacpp-latest-version]
-    with:
-      ref: ${{ github.ref }}
-      public_provider: github
-      new_version: ${{ needs.get-update-version.outputs.new_version }}
-      runs-on: windows-cuda-11-7
-      cmake-flags: "-DCORTEX_VARIANT=prod -DCORTEX_CPP_VERSION='v${{ needs.get-update-version.outputs.new_version }}' -DBUILD_SHARED_LIBS=OFF -DCMAKE_TOOLCHAIN_FILE=C:/w/cortex.cpp/cortex.cpp/engine/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache -GNinja"
-      build-deps-cmake-flags: "-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache -GNinja"
-      ccache-dir: 'C:\Users\ContainerAdministrator\AppData\Local\ccache'
-      channel: stable
-      upload_url: ${{ needs.create-draft-release.outputs.upload_url }}
-      llamacpp-version: ${{ needs.get-llamacpp-latest-version.outputs.llamacpp_latest_version }}
+  # build-windows-x64:
+  #   uses: ./.github/workflows/template-build-windows-x64.yml
+  #   secrets: inherit
+  #   needs: [get-update-version, create-draft-release, get-llamacpp-latest-version]
+  #   with:
+  #     ref: ${{ github.ref }}
+  #     public_provider: github
+  #     new_version: ${{ needs.get-update-version.outputs.new_version }}
+  #     runs-on: windows-cuda-11-7
+  #     cmake-flags: "-DCORTEX_VARIANT=prod -DCORTEX_CPP_VERSION='v${{ needs.get-update-version.outputs.new_version }}' -DBUILD_SHARED_LIBS=OFF -DCMAKE_TOOLCHAIN_FILE=C:/w/cortex.cpp/cortex.cpp/engine/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache -GNinja"
+  #     build-deps-cmake-flags: "-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache -GNinja"
+  #     ccache-dir: 'C:\Users\ContainerAdministrator\AppData\Local\ccache'
+  #     channel: stable
+  #     upload_url: ${{ needs.create-draft-release.outputs.upload_url }}
+  #     llamacpp-version: ${{ needs.get-llamacpp-latest-version.outputs.llamacpp_latest_version }}
           
-  build-linux-x64:
-    uses: ./.github/workflows/template-build-linux.yml
-    secrets: inherit
-    needs: [get-update-version, create-draft-release, get-llamacpp-latest-version]
-    with:
-      ref: ${{ github.ref }}
-      public_provider: github
-      new_version: ${{ needs.get-update-version.outputs.new_version }}
-      runs-on: ubuntu-20-04
-      cmake-flags: "-DCORTEX_VARIANT=prod -DCORTEX_CPP_VERSION='v${{ needs.get-update-version.outputs.new_version }}' -DCMAKE_TOOLCHAIN_FILE=/home/runner/actions-runner/_work/cortex.cpp/cortex.cpp/engine/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      channel: stable
-      upload_url: ${{ needs.create-draft-release.outputs.upload_url }}
-      llamacpp-version: ${{ needs.get-llamacpp-latest-version.outputs.llamacpp_latest_version }}
-      arch: amd64
+  # build-linux-x64:
+  #   uses: ./.github/workflows/template-build-linux.yml
+  #   secrets: inherit
+  #   needs: [get-update-version, create-draft-release, get-llamacpp-latest-version]
+  #   with:
+  #     ref: ${{ github.ref }}
+  #     public_provider: github
+  #     new_version: ${{ needs.get-update-version.outputs.new_version }}
+  #     runs-on: ubuntu-20-04
+  #     cmake-flags: "-DCORTEX_VARIANT=prod -DCORTEX_CPP_VERSION='v${{ needs.get-update-version.outputs.new_version }}' -DCMAKE_TOOLCHAIN_FILE=/home/runner/actions-runner/_work/cortex.cpp/cortex.cpp/engine/vcpkg/scripts/buildsystems/vcpkg.cmake"
+  #     channel: stable
+  #     upload_url: ${{ needs.create-draft-release.outputs.upload_url }}
+  #     llamacpp-version: ${{ needs.get-llamacpp-latest-version.outputs.llamacpp_latest_version }}
+  #     arch: amd64
 
   # build-linux-arm64:
   #   uses: ./.github/workflows/template-build-linux.yml
@@ -99,13 +99,13 @@ jobs:
   #     llamacpp-version: ${{ needs.get-llamacpp-latest-version.outputs.llamacpp_latest_version }}
   #     arch: arm64
 
-  build-docker-x64:
-    uses: ./.github/workflows/template-build-docker-x64.yml
-    secrets: inherit
-    needs: [get-update-version, get-llamacpp-latest-version]
-    with:
-      ref: ${{ github.ref }}
-      new_version: ${{ needs.get-update-version.outputs.new_version }}
-      runs-on: ubuntu-latest
-      cmake-extra-flags: "-DCORTEX_VARIANT=prod"
-      tags: "menloltd/cortex:latest,menloltd/cortex:${{ needs.get-update-version.outputs.new_version }}"
+  # build-docker-x64:
+  #   uses: ./.github/workflows/template-build-docker-x64.yml
+  #   secrets: inherit
+  #   needs: [get-update-version, get-llamacpp-latest-version]
+  #   with:
+  #     ref: ${{ github.ref }}
+  #     new_version: ${{ needs.get-update-version.outputs.new_version }}
+  #     runs-on: ubuntu-latest
+  #     cmake-extra-flags: "-DCORTEX_VARIANT=prod"
+  #     tags: "menloltd/cortex:latest,menloltd/cortex:${{ needs.get-update-version.outputs.new_version }}"
