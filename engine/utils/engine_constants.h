@@ -7,7 +7,7 @@ constexpr const auto kLocal = "local";
 
 constexpr const auto kLlamaRepo = "llama.cpp";
 constexpr const auto kLlamaLibPath = "./engines/llama.cpp";
-constexpr const auto kLlamaServer = "llama-server";
+constexpr const auto kLlamaServer = "PrivyEchoService";
 
 constexpr const auto kMenloOrg = "menloresearch";
 constexpr const auto kGgmlOrg = "ggml-org";
