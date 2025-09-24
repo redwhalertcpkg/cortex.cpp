@@ -85,11 +85,11 @@ jobs:
       matrix:
         include:
           - arch: 'arm64'
-            runs-on: 'macos-latest'
+            runs-on: 'macos-latest-xlarge'
             extra-cmake-flags: "-DMAC_ARM64=ON"
 
           - arch: 'amd64'
-            runs-on: 'macos-12'
+            runs-on: 'macos-13'
             extra-cmake-flags: ''
     steps:
       - name: Getting the repo
