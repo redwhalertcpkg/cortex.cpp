@@ -85,11 +85,11 @@ jobs:
       matrix:
         include:
           - arch: 'arm64'
-            runs-on: 'macos-selfhosted-12-arm64'
+            runs-on: 'macos-latest'
             extra-cmake-flags: "-DMAC_ARM64=ON"
 
           - arch: 'amd64'
-            runs-on: 'macos-selfhosted-12'
+            runs-on: 'macos-12'
             extra-cmake-flags: ''
     steps:
       - name: Getting the repo
@@ -215,19 +215,7 @@ jobs:
 
       - name: Install jq
         uses: dcarbone/install-jq-action@v2.0.1
-
-      - name: Get Cer for code signing
-        run: base64 -d <<< "$NOTARIZE_P8_BASE64" > /tmp/notary-key.p8
-        shell: bash
-        env:
-          NOTARIZE_P8_BASE64: ${{ secrets.NOTARIZE_P8_BASE64 }}
-
-      - uses: apple-actions/import-codesign-certs@v2
-        continue-on-error: true
-        with:
-          p12-file-base64: ${{ secrets.CODE_SIGN_P12_BASE64 }}
-          p12-password: ${{ secrets.CODE_SIGN_P12_PASSWORD }}
-      
+   
       - name: download artifacts mac arm64
         uses: actions/download-artifact@v4
         with:
@@ -250,87 +238,6 @@ jobs:
           lipo -create cortex-${{ inputs.new_version }}-mac-arm64/${{ steps.set-output-params.outputs.destination_binary_server_name }} cortex-${{ inputs.new_version }}-mac-amd64/${{ steps.set-output-params.outputs.destination_binary_server_name }} -output engine/cortex/${{ steps.set-output-params.outputs.destination_binary_server_name }}
           chmod +x engine/cortex/${{ steps.set-output-params.outputs.destination_binary_name }}
           chmod +x engine/cortex/${{ steps.set-output-params.outputs.destination_binary_server_name }}
-
-      - name: Code Signing binaries
-        run: |
-          cd engine
-          make codesign-binary CODE_SIGN=true DEVELOPER_ID="${{ secrets.DEVELOPER_ID }}" DESTINATION_BINARY_NAME="${{ steps.set-output-params.outputs.destination_binary_name }}" DESTINATION_BINARY_SERVER_NAME="${{ steps.set-output-params.outputs.destination_binary_server_name }}"
-
-      - name: Code Signing binaries for separate binary
-        run: |
-          codesign --force -s "${{ secrets.DEVELOPER_ID }}" --options=runtime --entitlements="./engine/templates/macos/entitlements.plist" ./cortex-${{ inputs.new_version }}-mac-arm64/${{ steps.set-output-params.outputs.destination_binary_name }}
-          codesign --force -s "${{ secrets.DEVELOPER_ID }}" --options=runtime --entitlements="./engine/templates/macos/entitlements.plist" ./cortex-${{ inputs.new_version }}-mac-arm64/${{ steps.set-output-params.outputs.destination_binary_server_name }}
-
-          codesign --force -s "${{ secrets.DEVELOPER_ID }}" --options=runtime --entitlements="./engine/templates/macos/entitlements.plist" ./cortex-${{ inputs.new_version }}-mac-amd64/${{ steps.set-output-params.outputs.destination_binary_name }}
-          codesign --force -s "${{ secrets.DEVELOPER_ID }}" --options=runtime --entitlements="./engine/templates/macos/entitlements.plist" ./cortex-${{ inputs.new_version }}-mac-amd64/${{ steps.set-output-params.outputs.destination_binary_server_name }}
-
-      - name: Notary macOS Binary
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/quill/main/install.sh | sh -s -- -b /usr/local/bin
-          cd engine/cortex
-          # Notarize the binary
-          quill notarize ./${{ steps.set-output-params.outputs.destination_binary_name }}
-          quill notarize ./${{ steps.set-output-params.outputs.destination_binary_server_name }}
-        env:
-          QUILL_NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
-          QUILL_NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER }}
-          QUILL_NOTARY_KEY: "/tmp/notary-key.p8"
-
-      - name: Notary macOS Binary for separate binary
-        run: |
-          # Notarize the binary
-          quill notarize ./cortex-${{ inputs.new_version }}-mac-arm64/${{ steps.set-output-params.outputs.destination_binary_name }}
-          quill notarize ./cortex-${{ inputs.new_version }}-mac-arm64/${{ steps.set-output-params.outputs.destination_binary_server_name }}
-          quill notarize ./cortex-${{ inputs.new_version }}-mac-amd64/${{ steps.set-output-params.outputs.destination_binary_name }}
-          quill notarize ./cortex-${{ inputs.new_version }}-mac-amd64/${{ steps.set-output-params.outputs.destination_binary_server_name }}
-        env:
-          QUILL_NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
-          QUILL_NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER }}
-          QUILL_NOTARY_KEY: "/tmp/notary-key.p8"
-
-      - name: Build network Installers
-        shell: bash
-        run: |
-          cd engine
-          make build-installer PACKAGE_NAME="${{ steps.set-output-params.outputs.package_name }}" VERSION=${{ inputs.new_version }} SOURCE_BINARY_PATH="../../cortex/${{ steps.set-output-params.outputs.destination_binary_name }}" SOURCE_BINARY_SERVER_PATH="../../cortex/${{ steps.set-output-params.outputs.destination_binary_server_name }}" DESTINATION_BINARY_NAME="${{ steps.set-output-params.outputs.destination_binary_name }}" DESTINATION_BINARY_SERVER_NAME="${{ steps.set-output-params.outputs.destination_binary_server_name }}" DATA_FOLDER_NAME="${{ steps.set-output-params.outputs.data_folder_name }}" CONFIGURATION_FILE_NAME="${{ steps.set-output-params.outputs.configuration_file_name }}" UNINSTALLER_FILE_NAME="${{ steps.set-output-params.outputs.uninstaller_file_name }}"
-          cat templates/macos/Scripts/postinstall
-
-      - name: Codesign and notary for macos installer
-        run: |
-          cd engine
-          productsign --sign "Developer ID Installer: ${{ secrets.DEVELOPER_ID }}" ${{ steps.set-output-params.outputs.package_name }}.pkg ${{ steps.set-output-params.outputs.package_name }}$-signed.pkg
-          rm ${{ steps.set-output-params.outputs.package_name }}.pkg
-          mv ${{ steps.set-output-params.outputs.package_name }}$-signed.pkg Distribution.pkg
-          productbuild --synthesize --package Distribution.pkg Distribution.xml
-          sed -i '' 's/require-scripts="false"/require-scripts="true"/' Distribution.xml
-          cat Distribution.xml
-          productbuild --distribution Distribution.xml --sign "Developer ID Installer: ${{ secrets.DEVELOPER_ID }}" --package-path . ${{ steps.set-output-params.outputs.package_name }}-network.pkg
-          xcrun notarytool submit ${{ steps.set-output-params.outputs.package_name }}-network.pkg --apple-id ${{ secrets.APPLE_ID }} --password ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }} --team-id ${{ secrets.APPLE_TEAM_ID }} --wait
-
-      - name: Build local Installers
-        shell: bash
-        run: |
-          mkdir -p engine/templates/macos/Scripts/dependencies
-          cd engine/templates/macos/Scripts/dependencies
-          wget https://github.com/menloresearch/llama.cpp/releases/download/${{ inputs.llamacpp-version }}/llama-${{ inputs.llamacpp-version }}-bin-macos-arm64.tar.gz
-          wget https://github.com/menloresearch/llama.cpp/releases/download/${{ inputs.llamacpp-version }}/llama-${{ inputs.llamacpp-version }}-bin-macos-x64.tar.gz
-
-          cd ../../
-          chmod +x create_pkg_local.sh
-          ./create_pkg_local.sh ${{ steps.set-output-params.outputs.package_name }} ${{ inputs.new_version }} ../../cortex/${{ steps.set-output-params.outputs.destination_binary_name }} ../../cortex/${{ steps.set-output-params.outputs.destination_binary_server_name }} ${{ steps.set-output-params.outputs.destination_binary_name }} ${{ steps.set-output-params.outputs.destination_binary_server_name }} ${{ steps.set-output-params.outputs.data_folder_name }} ${{ steps.set-output-params.outputs.configuration_file_name }} ${{ steps.set-output-params.outputs.uninstaller_file_name }}
-          cp ${{ steps.set-output-params.outputs.package_name }}.pkg ../../
-
-      - name: Codesign and notary for macos installer
-        run: |
-          cd engine
-          productsign --sign "Developer ID Installer: ${{ secrets.DEVELOPER_ID }}" ${{ steps.set-output-params.outputs.package_name }}.pkg ${{ steps.set-output-params.outputs.package_name }}$-signed.pkg
-          rm ${{ steps.set-output-params.outputs.package_name }}.pkg
-          mv ${{ steps.set-output-params.outputs.package_name }}$-signed.pkg Distribution.pkg
-          productbuild --synthesize --package Distribution.pkg Distribution.xml
-          sed -i '' 's/require-scripts="false"/require-scripts="true"/' Distribution.xml
-          cat Distribution.xml
-          productbuild --distribution Distribution.xml --sign "Developer ID Installer: ${{ secrets.DEVELOPER_ID }}" --package-path . ${{ steps.set-output-params.outputs.package_name }}-local.pkg
-          xcrun notarytool submit ${{ steps.set-output-params.outputs.package_name }}-local.pkg --apple-id ${{ secrets.APPLE_ID }} --password ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }} --team-id ${{ secrets.APPLE_TEAM_ID }} --wait
 
       - name: Package
         run: |
@@ -373,33 +280,6 @@ jobs:
           name: cortex-${{ inputs.new_version }}-mac-amd64-signed
           path: ./cortex-${{ inputs.new_version }}-mac-amd64
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cortex-${{ inputs.new_version }}-mac-universal-network-installer
-          path: ./engine/${{ steps.set-output-params.outputs.package_name }}-network.pkg
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cortex-${{ inputs.new_version }}-mac-universal-local-installer
-          path: ./engine/${{ steps.set-output-params.outputs.package_name }}-local.pkg
-
-      - name: upload to aws s3 if public provider is aws
-        if: inputs.public_provider == 'aws-s3'
-        run: |
-          aws s3 cp ./engine/cortex.tar.gz s3://${{ secrets.DELTA_AWS_S3_BUCKET_NAME }}/cortex/temp-latest/mac-universal-cortex-nightly.tar.gz
-          aws s3 cp ./engine/${{ steps.set-output-params.outputs.package_name }}-network.pkg s3://${{ secrets.DELTA_AWS_S3_BUCKET_NAME }}/cortex/temp-latest/cortex-mac-universal-network-installer.pkg
-
-          aws s3 cp ./engine/cortex.tar.gz s3://${{ secrets.DELTA_AWS_S3_BUCKET_NAME }}/cortex/v${{ inputs.new_version }}/mac-universal/cortex-nightly.tar.gz
-          aws s3 cp ./engine/${{ steps.set-output-params.outputs.package_name }}-network.pkg s3://${{ secrets.DELTA_AWS_S3_BUCKET_NAME }}/cortex/v${{ inputs.new_version }}/mac-universal/cortex-${{ inputs.new_version }}-mac-universal-network-installer.pkg
-          aws s3 cp ./engine/${{ steps.set-output-params.outputs.package_name }}-local.pkg s3://${{ secrets.DELTA_AWS_S3_BUCKET_NAME }}/cortex/v${{ inputs.new_version }}/mac-universal/cortex-${{ inputs.new_version }}-mac-universal-local-installer.pkg
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.DELTA_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.DELTA_AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.DELTA_AWS_REGION }}
-          AWS_EC2_METADATA_DISABLED: "true"
-
       - name: Upload release assert if public provider is github
         if: inputs.public_provider == 'github'
         env:
@@ -432,25 +312,3 @@ jobs:
           asset_path: ./cortex-amd64.tar.gz
           asset_name: cortex-${{ inputs.new_version }}-mac-amd64.tar.gz
           asset_content_type: application/zip
-
-      - name: Upload release assert if public provider is github
-        if: inputs.public_provider == 'github'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: actions/upload-release-asset@v1.0.1
-        with:
-          upload_url: ${{ inputs.upload_url }}
-          asset_path: ./engine/${{ steps.set-output-params.outputs.package_name }}-network.pkg
-          asset_name: cortex-${{ inputs.new_version }}-mac-universal-network-installer.pkg
-          asset_content_type: application/octet-stream
-
-      - name: Upload release assert if public provider is github
-        if: inputs.public_provider == 'github'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: actions/upload-release-asset@v1.0.1
-        with:
-          upload_url: ${{ inputs.upload_url }}
-          asset_path: ./engine/${{ steps.set-output-params.outputs.package_name }}-local.pkg
-          asset_name: cortex-${{ inputs.new_version }}-mac-universal-local-installer.pkg
-          asset_content_type: application/octet-stream
