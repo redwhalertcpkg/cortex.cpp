@@ -9,11 +9,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 13.0)
-    #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --static-libc++")
-endif()
-
 # Add CORTEX_CQA option
 # Enabling this option will currently break the build.
 # Only for debugging
