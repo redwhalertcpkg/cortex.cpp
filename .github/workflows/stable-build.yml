@@ -48,7 +48,7 @@ jobs:
       ref: ${{ github.ref }}
       public_provider: github
       new_version: ${{ needs.get-update-version.outputs.new_version }}
-      cmake-flags: "-DCORTEX_VARIANT=prod -DCORTEX_CPP_VERSION='v${{ needs.get-update-version.outputs.new_version }}' -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0"
+      cmake-flags: "-DCORTEX_VARIANT=prod -DCORTEX_CPP_VERSION='v${{ needs.get-update-version.outputs.new_version }}' -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12"
       channel: stable
       upload_url: ${{ needs.create-draft-release.outputs.upload_url }}
       llamacpp-version: ${{ needs.get-llamacpp-latest-version.outputs.llamacpp_latest_version }}
